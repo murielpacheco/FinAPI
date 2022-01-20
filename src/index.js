@@ -7,12 +7,33 @@ app.use(express.json());
 
 const customers = [];
 
-/*
-* cpf - string
-  name - string
-  id - uuid
-  statement []
-*/
+// Middleware
+
+function verifyAccountCPF(request, response, next) {
+  const { cpf } = request.headers;
+
+  const customer = customers.find((customer) => customer.cpf === cpf);
+
+  if (!customer) {
+    return response.status(400).json({ error: 'Customer not found' });
+  }
+
+  request.customer = customer;
+
+  return next();
+}
+
+function getBalance(statement) {
+  const balance = statement.reduce((acc, operation) => {
+    if (operation.type === 'credit') {
+      return acc + operation.amount;
+    } else {
+      return acc - operation.amount;
+    }
+  }, 0);
+
+  return balance;
+}
 
 app.post('/account', (request, response) => {
   const { name, cpf } = request.body;
@@ -35,12 +56,46 @@ app.post('/account', (request, response) => {
   return response.status(201).send();
 });
 
-app.get('/statement/:cpf', (request, response) => {
-  const { cpf } = request.params;
+app.get('/statement/', verifyAccountCPF, (request, response) => {
+  const { customer } = request;
+  return response.json(customer.statement);
+});
 
-  const customer = customers.find((customer => customer.cpf === cpf))
+app.post('/deposit', verifyAccountCPF, (request, response) => {
+  const { description, amount } = request.body;
+  const { customer } = request;
 
-  return response.json(customer.statement)
+  const statementOptions = {
+    description,
+    amount,
+    created_at: new Date(),
+    type: 'credit',
+  };
+
+  customer.statement.push(statementOptions);
+
+  return response.status(201).send();
+});
+
+app.post('/withdrawl', verifyAccountCPF, (request, response) => {
+  const { amount } = request.body;
+  const { customer } = request;
+
+  const balance = getBalance(customer.statement);
+
+  if (balance < amount) {
+    return response.status(400).json({ error: 'Insuficient balance!' });
+  }
+
+  const statementOperations = {
+    amount,
+    created_at: new Date(),
+    type: 'debit',
+  };
+
+  customer.statement.push(statementOperations);
+
+  return response.status(201).send();
 });
 
 app.listen(3333, console.log('App running at port: 3333'));
