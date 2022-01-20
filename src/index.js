@@ -56,7 +56,7 @@ app.post('/account', (request, response) => {
   return response.status(201).send();
 });
 
-app.get('/statement/', verifyAccountCPF, (request, response) => {
+app.get('/statement', verifyAccountCPF, (request, response) => {
   const { customer } = request;
   return response.json(customer.statement);
 });
@@ -98,4 +98,42 @@ app.post('/withdrawl', verifyAccountCPF, (request, response) => {
   return response.status(201).send();
 });
 
-app.listen(3333, console.log('App running at port: 3333'));
+app.get('/statement/date', verifyAccountCPF, (request, response) => {
+  const { customer } = request;
+  const { date } = request.query;
+
+  const dateFormat = new Date(date + ' 00:00');
+
+  const statement = customer.statement.filter(
+    (statement) =>
+      statement.created_at.toDateString() ===
+      new Date(dateFormat).toDateString()
+  );
+
+  return response.json(statement);
+});
+
+app.put('/account', verifyAccountCPF, (request, response) => {
+  const { name } = request.body;
+  const { customer } = request;
+
+  customer.name = name;
+
+  return response.status(201).send();
+});
+
+app.get('/account', verifyAccountCPF, (request, response) => {
+  const { customer } = request;
+
+  return response.json(customer);
+});
+
+app.delete('/account', verifyAccountCPF, (request, response) => {
+  const { customer } = request;
+
+  customers.splice(customer, 1);
+
+  return response.status(200).json(customers);
+});
+
+app.listen(3333, console.log('App running on port: 3333'));
