@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "type": "module",
   "scripts": {
-    "dev": "nodemon src/index.js"
+    "dev": "nodemon --trace-warnings src/server.js"
   },
   "dependencies": {
     "express": "^4.17.2",
